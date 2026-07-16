@@ -9,828 +9,286 @@
 <script src="https://unpkg.com/@babel/standalone@7.18.0/babel.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.js"></script>
 <style>
-  :root {
-    --primary: #1a1a2e;
-    --accent: #c9a84c;
-    --accent-light: #f5e9c8;
-    --bg: #f9f7f3;
-    --surface: #ffffff;
-    --border: #e8e3d9;
-    --text: #1a1a2e;
-    --text-muted: #7a7065;
-    --success: #2d6a4f;
-    --success-bg: #d8f3dc;
-    --danger: #9d2b2b;
-    --danger-bg: #fde8e8;
-    --info: #1d4e89;
-    --info-bg: #dce8f7;
-    --warn: #7a4f00;
-    --warn-bg: #fff3cd;
-    --sidebar-w: 220px;
-    --radius: 10px;
-    --shadow: 0 2px 12px rgba(0,0,0,0.07);
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
-  a { text-decoration: none; color: inherit; }
-
-  /* Layout */
-  .app { display: flex; min-height: 100vh; }
-  .sidebar {
-    width: var(--sidebar-w); background: var(--primary); color: #fff;
-    display: flex; flex-direction: column; padding: 0; position: fixed;
-    top: 0; left: 0; height: 100vh; z-index: 100; transition: transform 0.3s;
-  }
-  .sidebar-logo {
-    padding: 24px 20px 20px; border-bottom: 1px solid rgba(255,255,255,0.1);
-  }
-  .sidebar-logo h1 { font-size: 20px; font-weight: 700; color: var(--accent); letter-spacing: 0.5px; }
-  .sidebar-logo p { font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 2px; font-style: italic; }
-  .sidebar-nav { flex: 1; padding: 16px 0; overflow-y: auto; }
-  .nav-item {
-    display: flex; align-items: center; gap: 10px; padding: 11px 20px;
-    cursor: pointer; color: rgba(255,255,255,0.7); font-size: 13.5px;
-    transition: all 0.15s; border-left: 3px solid transparent;
-  }
-  .nav-item:hover { color: #fff; background: rgba(255,255,255,0.07); }
-  .nav-item.active { color: var(--accent); border-left-color: var(--accent); background: rgba(201,168,76,0.1); }
-  .nav-icon { font-size: 17px; width: 20px; text-align: center; }
-  .main { margin-left: var(--sidebar-w); flex: 1; padding: 28px 32px; min-height: 100vh; }
-  .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
-  .topbar h2 { font-size: 22px; font-weight: 700; color: var(--primary); }
-  .menu-btn { display: none; background: none; border: none; cursor: pointer; font-size: 22px; padding: 4px; }
-  .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 99; }
-
-  /* Cards */
-  .card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; border: 1px solid var(--border); }
-  .card-title { font-size: 13px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px; }
-
-  /* KPI grid */
-  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }
-  .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
-  .kpi-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.7px; }
-  .kpi-value { font-size: 22px; font-weight: 700; margin-top: 4px; color: var(--primary); }
-  .kpi-value.accent { color: var(--accent); }
-  .kpi-value.success { color: var(--success); }
-  .kpi-value.info { color: var(--info); }
-  .kpi-value.warn { color: var(--warn); }
-
-  /* Tables */
-  .table-wrap { overflow-x: auto; margin-top: 12px; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th { text-align: left; padding: 8px 12px; background: var(--bg); color: var(--text-muted); font-weight: 600; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid var(--border); }
-  td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
-  tr:last-child td { border-bottom: none; }
-  tr:hover td { background: var(--bg); }
-
-  /* Badges */
-  .badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
-  .badge-vente { background: var(--success-bg); color: var(--success); }
-  .badge-expedition { background: var(--info-bg); color: var(--info); }
-  .badge-reservation { background: var(--warn-bg); color: var(--warn); }
-
-  /* Forms */
-  .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
-  .form-group { display: flex; flex-direction: column; gap: 5px; }
-  .form-group label { font-size: 12px; font-weight: 600; color: var(--text-muted); }
-  .form-group input, .form-group select, .form-group textarea {
-    border: 1.5px solid var(--border); border-radius: 7px; padding: 9px 12px;
-    font-size: 13.5px; background: var(--bg); color: var(--text);
-    transition: border-color 0.15s; outline: none; font-family: inherit;
-  }
-  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--accent); }
-  .sizes-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
-  .size-input { display: flex; flex-direction: column; gap: 3px; align-items: center; }
-  .size-input label { font-size: 11px; font-weight: 700; color: var(--text-muted); }
-  .size-input input { width: 100%; text-align: center; }
-
-  /* Buttons */
-  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: 8px; font-size: 13.5px; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s; }
-  .btn-primary { background: var(--accent); color: var(--primary); }
-  .btn-primary:hover { background: #b8943e; }
-  .btn-secondary { background: var(--bg); color: var(--text); border: 1.5px solid var(--border); }
-  .btn-secondary:hover { background: var(--border); }
-  .btn-danger { background: var(--danger-bg); color: var(--danger); }
-  .btn-danger:hover { background: #fca5a5; }
-  .btn-sm { padding: 5px 11px; font-size: 12px; }
-  .btn-group { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
-
-  /* Alerts */
-  .alert { padding: 10px 14px; border-radius: 7px; font-size: 13px; margin-bottom: 14px; }
-  .alert-success { background: var(--success-bg); color: var(--success); }
-  .alert-error { background: var(--danger-bg); color: var(--danger); }
-
-  /* Modal */
-  .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 16px; }
-  .modal { background: var(--surface); border-radius: 14px; width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
-  .modal-header { padding: 20px 24px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-  .modal-header h3 { font-size: 17px; font-weight: 700; }
-  .modal-body { padding: 20px 24px 24px; }
-  .close-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-muted); padding: 2px; }
-  .close-btn:hover { color: var(--text); }
-
-  /* Setup screen */
-  .setup-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--bg); padding: 24px; }
-  .setup-card { background: var(--surface); border-radius: 16px; padding: 40px; max-width: 500px; width: 100%; box-shadow: var(--shadow); border: 1px solid var(--border); }
-  .setup-card h1 { font-size: 26px; font-weight: 800; color: var(--accent); margin-bottom: 6px; }
-  .setup-card p { color: var(--text-muted); font-size: 14px; margin-bottom: 24px; }
-  .setup-steps { background: var(--bg); border-radius: 9px; padding: 16px; margin-bottom: 24px; border: 1px solid var(--border); }
-  .setup-steps ol { margin-left: 18px; }
-  .setup-steps li { padding: 4px 0; font-size: 13px; line-height: 1.6; }
-  .setup-steps code { background: var(--border); padding: 1px 6px; border-radius: 4px; font-size: 12px; font-family: monospace; }
-  .section-divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
-  .stock-tag { display: inline-block; background: var(--accent-light); color: var(--primary); border-radius: 5px; padding: 1px 8px; font-size: 12px; font-weight: 600; margin: 1px; }
-  .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 14px; }
-  .empty-state-icon { font-size: 36px; margin-bottom: 10px; }
-
-  @media (max-width: 768px) {
-    .sidebar { transform: translateX(-100%); }
-    .sidebar.open { transform: translateX(0); }
-    .overlay.open { display: block; }
-    .menu-btn { display: block; }
-    .main { margin-left: 0; padding: 16px; }
-    .sizes-grid { grid-template-columns: repeat(3, 1fr); }
-    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
-    .topbar { position: sticky; top: 0; background: var(--bg); z-index: 50; padding: 12px 0; }
-  }
+:root{--primary:#1a1a2e;--accent:#c9a84c;--accent-light:#f5e9c8;--accent2:#8B5E8B;--accent2-light:#f0e8f0;--bg:#f9f7f3;--surface:#ffffff;--border:#e8e3d9;--text:#1a1a2e;--text-muted:#7a7065;--success:#2d6a4f;--success-bg:#d8f3dc;--danger:#9d2b2b;--danger-bg:#fde8e8;--info:#1d4e89;--info-bg:#dce8f7;--warn:#7a4f00;--warn-bg:#fff3cd;--sidebar-w:220px;--radius:10px;--shadow:0 2px 12px rgba(0,0,0,0.07);}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px;}
+.app{display:flex;min-height:100vh;}
+.sidebar{width:var(--sidebar-w);background:var(--primary);color:#fff;display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;transition:transform 0.3s;}
+.sidebar-logo{padding:18px 20px 0;}
+.sidebar-logo h1{font-size:19px;font-weight:700;color:var(--accent);}
+.sidebar-logo p{font-size:11px;color:rgba(255,255,255,0.45);margin-top:2px;font-style:italic;margin-bottom:12px;}
+.sidebar-tabs{display:flex;border-bottom:1px solid rgba(255,255,255,0.1);}
+.sidebar-tab{flex:1;padding:9px 4px;text-align:center;cursor:pointer;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:rgba(255,255,255,0.4);border:none;border-bottom:3px solid transparent;background:none;transition:all 0.15s;}
+.sidebar-tab.tab-burkini{color:var(--accent);border-bottom-color:var(--accent);}
+.sidebar-tab.tab-collection{color:#c9a8e8;border-bottom-color:#c9a8e8;}
+.sidebar-nav{flex:1;padding:8px 0;overflow-y:auto;}
+.nav-section{padding:10px 20px 3px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,0.28);}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;cursor:pointer;color:rgba(255,255,255,0.7);font-size:13px;transition:all 0.15s;border-left:3px solid transparent;}
+.nav-item:hover{color:#fff;background:rgba(255,255,255,0.07);}
+.nav-item.nav-burkini{color:var(--accent);border-left-color:var(--accent);background:rgba(201,168,76,0.1);}
+.nav-item.nav-collection{color:#c9a8e8;border-left-color:#c9a8e8;background:rgba(139,94,139,0.15);}
+.nav-icon{font-size:16px;width:20px;text-align:center;}
+.sidebar-footer{padding:14px 20px;border-top:1px solid rgba(255,255,255,0.08);}
+.main{margin-left:var(--sidebar-w);flex:1;min-height:100vh;}
+.main-header{padding:18px 28px 0;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50;}
+.main-header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.main-header-top h2{font-size:19px;font-weight:700;color:var(--primary);}
+.col-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;}
+.col-badge.burkini{background:var(--accent-light);color:#7a5800;}
+.col-badge.collection{background:var(--accent2-light);color:var(--accent2);}
+.main-content{padding:22px 28px;}
+.menu-btn{display:none;background:none;border:none;cursor:pointer;font-size:22px;padding:4px;}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:99;}
+.card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;border:1px solid var(--border);margin-bottom:16px;}
+.card-title{font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:12px;}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;}
+.kpi-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.7px;}
+.kpi-value{font-size:20px;font-weight:700;margin-top:4px;}
+.kpi-value.accent{color:var(--accent);}
+.kpi-value.accent2{color:var(--accent2);}
+.kpi-value.success{color:var(--success);}
+.kpi-value.info{color:var(--info);}
+.kpi-value.warn{color:var(--warn);}
+.table-wrap{overflow-x:auto;margin-top:8px;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{text-align:left;padding:7px 12px;background:var(--bg);color:var(--text-muted);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;border-bottom:2px solid var(--border);}
+td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:var(--bg);}
+.badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;}
+.badge-vente{background:var(--success-bg);color:var(--success);}
+.badge-expedition{background:var(--info-bg);color:var(--info);}
+.badge-reservation{background:var(--warn-bg);color:var(--warn);}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;}
+.form-group{display:flex;flex-direction:column;gap:5px;}
+.form-group label{font-size:12px;font-weight:600;color:var(--text-muted);}
+.form-group input,.form-group select,.form-group textarea{border:1.5px solid var(--border);border-radius:7px;padding:9px 12px;font-size:13px;background:var(--bg);color:var(--text);transition:border-color 0.15s;outline:none;font-family:inherit;}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--accent);}
+.sizes-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;}
+.size-input{display:flex;flex-direction:column;gap:3px;align-items:center;}
+.size-input label{font-size:11px;font-weight:700;color:var(--text-muted);}
+.size-input input{width:100%;text-align:center;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all 0.15s;}
+.btn-primary{background:var(--accent);color:var(--primary);}
+.btn-primary:hover{background:#b8943e;}
+.btn-col{background:var(--accent2);color:#fff;}
+.btn-col:hover{background:#7a4f7a;}
+.btn-secondary{background:var(--bg);color:var(--text);border:1.5px solid var(--border);}
+.btn-secondary:hover{background:var(--border);}
+.btn-danger{background:var(--danger-bg);color:var(--danger);}
+.btn-danger:hover{background:#fca5a5;}
+.btn-sm{padding:5px 10px;font-size:12px;}
+.btn-group{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;}
+.alert{padding:10px 14px;border-radius:7px;font-size:13px;margin-bottom:12px;}
+.alert-success{background:var(--success-bg);color:var(--success);}
+.alert-error{background:var(--danger-bg);color:var(--danger);}
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;}
+.modal{background:var(--surface);border-radius:14px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.2);}
+.modal-header{padding:18px 22px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.modal-header h3{font-size:16px;font-weight:700;}
+.modal-body{padding:18px 22px 22px;}
+.close-btn{background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-muted);}
+.setup-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);padding:24px;}
+.setup-card{background:var(--surface);border-radius:16px;padding:36px;max-width:480px;width:100%;box-shadow:var(--shadow);border:1px solid var(--border);}
+.setup-card h1{font-size:24px;font-weight:800;color:var(--accent);margin-bottom:6px;}
+.setup-card p{color:var(--text-muted);font-size:13px;margin-bottom:20px;}
+.stock-tag{display:inline-block;background:var(--accent-light);color:var(--primary);border-radius:5px;padding:1px 8px;font-size:12px;font-weight:600;margin:1px;}
+.empty-state{text-align:center;padding:36px 20px;color:var(--text-muted);}
+.empty-state-icon{font-size:34px;margin-bottom:10px;}
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%);}
+  .sidebar.open{transform:translateX(0);}
+  .overlay.open{display:block;}
+  .menu-btn{display:block;}
+  .main{margin-left:0;}
+  .main-header{padding:14px 14px 0;}
+  .main-content{padding:14px;}
+  .sizes-grid{grid-template-columns:repeat(3,1fr);}
+  .kpi-grid{grid-template-columns:repeat(2,1fr);}
+}
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const { useState, useEffect, useCallback, useMemo } = React;
+const { useState, useEffect, useMemo } = React;
 const { createClient } = supabase;
-
-const SUPABASE_URL_KEY = 'styleandco_supabase_url';
-const SUPABASE_KEY_KEY = 'styleandco_supabase_key';
+const SK_URL = 'styleandco_supabase_url';
+const SK_KEY = 'styleandco_supabase_key';
 const TAILLES = ['S','M','L','XL','2XL','3XL'];
 const TYPE_MVMT = ['vente','expedition','reservation'];
 
-function getSupabase() {
-  const url = localStorage.getItem(SUPABASE_URL_KEY);
-  const key = localStorage.getItem(SUPABASE_KEY_KEY);
-  if (!url || !key) return null;
-  return createClient(url, key);
-}
-
-// ── Setup Screen ──────────────────────────────────────────────
-function SetupScreen({ onConnect }) {
-  const [url, setUrl] = useState('');
-  const [key, setKey] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  async function handleConnect() {
-    setError('');
-    if (!url.trim() || !key.trim()) { setError('Remplis les deux champs.'); return; }
-    setLoading(true);
-    try {
-      const sb = createClient(url.trim(), key.trim());
-      const { error: e } = await sb.from('articles').select('id').limit(1);
-      if (e && e.code !== 'PGRST116') throw new Error(e.message);
-      localStorage.setItem(SUPABASE_URL_KEY, url.trim());
-      localStorage.setItem(SUPABASE_KEY_KEY, key.trim());
-      onConnect();
-    } catch(e) {
-      setError('Connexion échouée : ' + e.message + '. Vérifie l\'URL et la clé, et que le schéma SQL a été exécuté.');
-    } finally { setLoading(false); }
-  }
-
-  return (
-    <div className="setup-screen">
-      <div className="setup-card">
-        <h1>Style &amp; Co</h1>
-        <p>Configuration de la base de données Supabase (gratuit)</p>
-        <div className="setup-steps">
-          <strong style={{fontSize:'12px', textTransform:'uppercase', letterSpacing:'0.6px', color:'var(--text-muted)'}}>Configuration initiale</strong>
-          <ol style={{marginTop:'10px'}}>
-            <li>Crée un compte sur <strong>supabase.com</strong> (gratuit)</li>
-            <li>Crée un nouveau projet</li>
-            <li>Dans <strong>SQL Editor</strong>, exécute le fichier <code>supabase_schema.sql</code> fourni</li>
-            <li>Dans <strong>Project Settings → API</strong>, copie :<br/>
-              – <em>Project URL</em><br/>
-              – <em>anon / public key</em>
-            </li>
-          </ol>
-        </div>
-        {error && <div className="alert alert-error">{error}</div>}
-        <div className="form-group" style={{marginBottom:'12px'}}>
-          <label>Project URL Supabase</label>
-          <input value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://xxxx.supabase.co" />
-        </div>
-        <div className="form-group" style={{marginBottom:'18px'}}>
-          <label>Clé anon / public</label>
-          <input value={key} onChange={e=>setKey(e.target.value)} placeholder="eyJhbGciOiJIUzI1NiIs..." type="password" />
-        </div>
-        <button className="btn btn-primary" style={{width:'100%', justifyContent:'center'}} onClick={handleConnect} disabled={loading}>
-          {loading ? 'Connexion...' : '✓ Connecter'}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ── Helpers ───────────────────────────────────────────────────
-const fmt = n => isNaN(n) ? '0' : Number(n).toLocaleString('fr-FR', {minimumFractionDigits:0, maximumFractionDigits:0});
-const fmtPrice = n => isNaN(n) ? '0 MAD' : Number(n).toLocaleString('fr-FR', {minimumFractionDigits:0, maximumFractionDigits:0}) + ' MAD';
-
-// ── Dashboard ─────────────────────────────────────────────────
-function Dashboard({ sb }) {
-  const [articles, setArticles] = useState([]);
-  const [mouvements, setMouvements] = useState([]);
-  const [capital, setCapital] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function load() {
-      const [a,m,c] = await Promise.all([
-        sb.from('articles').select('*'),
-        sb.from('mouvements').select('*,articles(nom)'),
-        sb.from('capital').select('*'),
-      ]);
-      setArticles(a.data||[]);
-      setMouvements(m.data||[]);
-      setCapital(c.data||[]);
-      setLoading(false);
-    }
-    load();
-  }, []);
-
-  const stats = useMemo(() => {
-    const totalCapital = capital.reduce((s,c)=>s+Number(c.montant),0);
-    const stockInitial = articles.reduce((s,a)=>s+TAILLES.reduce((ss,t)=>ss+Number(a['stock_'+t.toLowerCase().replace('xl','xl').replace('2xl','2xl').replace('3xl','3xl')]||0),0),0);
-
-    const mvmtByType = (type) => mouvements.filter(m=>m.type===type);
-    const countMvmt = (type) => mvmtByType(type).reduce((s,m)=>s+m.quantite,0);
-    const caMvmt = (type) => mvmtByType(type).reduce((s,m)=>s+m.quantite*Number(m.prix),0);
-
-    const stockVendu = countMvmt('vente');
-    const stockExp = countMvmt('expedition');
-    const stockRes = countMvmt('reservation');
-    const stockRestant = stockInitial - stockVendu - stockExp;
-
-    const caVendu = caMvmt('vente');
-    const caExp = caMvmt('expedition');
-    const caRes = caMvmt('reservation');
-    const caTotal = caVendu + caExp + caRes;
-    const pctCA = totalCapital > 0 ? (caTotal/totalCapital*100) : 0;
-
-    return { totalCapital, stockInitial, stockVendu, stockExp, stockRes, stockRestant, caVendu, caExp, caRes, caTotal, pctCA };
-  }, [articles, mouvements, capital]);
-
-  // Stocks restants par article et taille
-  const stocksRestants = useMemo(() => {
-    return articles.map(a => {
-      const venduParTaille = {};
-      const expParTaille = {};
-      const resParTaille = {};
-      TAILLES.forEach(t => {
-        const mvmtsA = mouvements.filter(m=>m.article_id===a.id && m.taille===t);
-        venduParTaille[t] = mvmtsA.filter(m=>m.type==='vente').reduce((s,m)=>s+m.quantite,0);
-        expParTaille[t] = mvmtsA.filter(m=>m.type==='expedition').reduce((s,m)=>s+m.quantite,0);
-        resParTaille[t] = mvmtsA.filter(m=>m.type==='reservation').reduce((s,m)=>s+m.quantite,0);
-      });
-      const restants = {};
-      TAILLES.forEach(t => {
-        const key = 'stock_'+t.toLowerCase();
-        restants[t] = Number(a[key]||0) - venduParTaille[t] - expParTaille[t];
-      });
-      const dispos = {};
-      TAILLES.forEach(t => {
-        const key = 'stock_'+t.toLowerCase();
-        dispos[t] = Number(a[key]||0) - venduParTaille[t] - expParTaille[t] - resParTaille[t];
-      });
-      return { ...a, restants, dispos };
-    });
-  }, [articles, mouvements]);
-
-  if (loading) return <div className="empty-state"><div className="empty-state-icon">⏳</div>Chargement...</div>;
-
-  return (
-    <div>
-      {/* KPI Stock */}
-      <div className="card" style={{marginBottom:'16px'}}>
-        <div className="card-title">📦 Stock</div>
-        <div className="kpi-grid" style={{marginTop:'12px', marginBottom:0}}>
-          <div className="kpi"><div className="kpi-label">Stock initial</div><div className="kpi-value">{fmt(stats.stockInitial)}</div></div>
-          <div className="kpi"><div className="kpi-label">Vendu</div><div className="kpi-value success">{fmt(stats.stockVendu)}</div></div>
-          <div className="kpi"><div className="kpi-label">Expédié</div><div className="kpi-value info">{fmt(stats.stockExp)}</div></div>
-          <div className="kpi"><div className="kpi-label">Réservé</div><div className="kpi-value warn">{fmt(stats.stockRes)}</div></div>
-          <div className="kpi"><div className="kpi-label">Restant</div><div className="kpi-value accent">{fmt(stats.stockRestant)}</div></div>
-        </div>
-      </div>
-
-      {/* KPI CA */}
-      <div className="card" style={{marginBottom:'16px'}}>
-        <div className="card-title">💰 Chiffre d'affaires</div>
-        <div className="kpi-grid" style={{marginTop:'12px', marginBottom:0}}>
-          <div className="kpi"><div className="kpi-label">CA Vendu</div><div className="kpi-value success">{fmtPrice(stats.caVendu)}</div></div>
-          <div className="kpi"><div className="kpi-label">CA Expédié</div><div className="kpi-value info">{fmtPrice(stats.caExp)}</div></div>
-          <div className="kpi"><div className="kpi-label">CA Réservé</div><div className="kpi-value warn">{fmtPrice(stats.caRes)}</div></div>
-          <div className="kpi"><div className="kpi-label">CA Total</div><div className="kpi-value">{fmtPrice(stats.caTotal)}</div></div>
-          <div className="kpi"><div className="kpi-label">Capital</div><div className="kpi-value">{fmtPrice(stats.totalCapital)}</div></div>
-          <div className="kpi"><div className="kpi-label">CA / Capital</div><div className="kpi-value accent">{stats.pctCA.toFixed(1)} %</div></div>
-        </div>
-      </div>
-
-      {/* Table stocks restants */}
-      <div className="card" style={{marginBottom:'16px'}}>
-        <div className="card-title">📊 Stock restant par modèle & taille (hors expédition/vente)</div>
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr><th>Modèle</th><th>Type</th>{TAILLES.map(t=><th key={t}>{t}</th>)}<th>Total</th></tr>
-            </thead>
-            <tbody>
-              {stocksRestants.length === 0 && <tr><td colSpan={9} className="empty-state">Aucun article</td></tr>}
-              {stocksRestants.map(a=>(
-                <tr key={a.id}>
-                  <td><strong>{a.nom}</strong></td>
-                  <td style={{color:'var(--text-muted)'}}>{a.type}</td>
-                  {TAILLES.map(t=><td key={t}><span className={a.restants[t]>0?'stock-tag':''}>{a.restants[t]}</span></td>)}
-                  <td><strong>{TAILLES.reduce((s,t)=>s+a.restants[t],0)}</strong></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Table dispos (hors réservations aussi) */}
-      <div className="card">
-        <div className="card-title">✅ Modèles disponibles par taille (non réservés, non vendus, non expédiés)</div>
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr><th>Modèle</th>{TAILLES.map(t=><th key={t}>{t}</th>)}<th>Total dispo</th></tr>
-            </thead>
-            <tbody>
-              {stocksRestants.length === 0 && <tr><td colSpan={8} className="empty-state">Aucun article</td></tr>}
-              {stocksRestants.map(a=>(
-                <tr key={a.id}>
-                  <td><strong>{a.nom}</strong></td>
-                  {TAILLES.map(t=><td key={t}>{a.dispos[t]>0?<span className="stock-tag">{a.dispos[t]}</span>:<span style={{color:'var(--text-muted)'}}>—</span>}</td>)}
-                  <td><strong>{TAILLES.reduce((s,t)=>s+Math.max(0,a.dispos[t]),0)}</strong></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Articles ──────────────────────────────────────────────────
-function Articles({ sb }) {
-  const [articles, setArticles] = useState([]);
-  const [modal, setModal] = useState(null); // null | 'add' | article
-  const [form, setForm] = useState({});
-  const [alert, setAlert] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  async function load() { const {data}=await sb.from('articles').select('*').order('created_at',{ascending:false}); setArticles(data||[]); setLoading(false); }
-  useEffect(()=>{ load(); },[]);
-
-  function openAdd() { setForm({nom:'',type:'',prix_base:'',stock_s:0,stock_m:0,stock_l:0,stock_xl:0,stock_2xl:0,stock_3xl:0}); setModal('add'); }
-  function openEdit(a) { setForm({...a}); setModal(a); }
-
-  async function save() {
-    const payload = {
-      nom: form.nom, type: form.type, prix_base: Number(form.prix_base)||0,
-      stock_s: Number(form.stock_s)||0, stock_m: Number(form.stock_m)||0,
-      stock_l: Number(form.stock_l)||0, stock_xl: Number(form.stock_xl)||0,
-      stock_2xl: Number(form.stock_2xl)||0, stock_3xl: Number(form.stock_3xl)||0,
-    };
-    if (!payload.nom) { setAlert({type:'error',msg:'Le nom est requis.'}); return; }
-    let e;
-    if (modal === 'add') { ({error:e}=await sb.from('articles').insert([payload])); }
-    else { ({error:e}=await sb.from('articles').update(payload).eq('id',modal.id)); }
-    if (e) { setAlert({type:'error',msg:e.message}); return; }
-    setAlert({type:'success',msg: modal==='add' ? 'Article ajouté !' : 'Article mis à jour !'}); 
-    setModal(null); load();
-    setTimeout(()=>setAlert(null),3000);
-  }
-
-  async function del(id) {
-    if (!confirm('Supprimer cet article ?')) return;
-    await sb.from('articles').delete().eq('id',id);
-    load();
-  }
-
-  const sf = (k,v) => setForm(f=>({...f,[k]:v}));
-
-  return (
-    <div>
-      {alert && <div className={`alert alert-${alert.type}`}>{alert.msg}</div>}
-      <div style={{display:'flex',justifyContent:'flex-end',marginBottom:'16px'}}>
-        <button className="btn btn-primary" onClick={openAdd}>+ Ajouter un article</button>
-      </div>
-      {loading ? <div className="empty-state">Chargement...</div> : (
-        articles.length === 0 ? (
-          <div className="card"><div className="empty-state"><div className="empty-state-icon">👗</div>Aucun article pour l'instant.<br/><button className="btn btn-primary" style={{marginTop:'14px'}} onClick={openAdd}>Ajouter le premier article</button></div></div>
-        ) : (
-          <div className="card">
-            <div className="table-wrap">
-              <table>
-                <thead><tr><th>Nom</th><th>Type</th><th>Prix base</th>{TAILLES.map(t=><th key={t}>{t}</th>)}<th>Actions</th></tr></thead>
-                <tbody>
-                  {articles.map(a=>(
-                    <tr key={a.id}>
-                      <td><strong>{a.nom}</strong></td>
-                      <td style={{color:'var(--text-muted)'}}>{a.type}</td>
-                      <td>{fmtPrice(a.prix_base)}</td>
-                      {TAILLES.map(t=><td key={t}>{a['stock_'+t.toLowerCase()]||0}</td>)}
-                      <td>
-                        <div style={{display:'flex',gap:'6px'}}>
-                          <button className="btn btn-secondary btn-sm" onClick={()=>openEdit(a)}>✏️</button>
-                          <button className="btn btn-danger btn-sm" onClick={()=>del(a.id)}>🗑</button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )
-      )}
-
-      {modal && (
-        <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&setModal(null)}>
-          <div className="modal">
-            <div className="modal-header">
-              <h3>{modal==='add'?'Ajouter un article':'Modifier l\'article'}</h3>
-              <button className="close-btn" onClick={()=>setModal(null)}>✕</button>
-            </div>
-            <div className="modal-body">
-              <div className="form-grid" style={{marginBottom:'14px'}}>
-                <div className="form-group">
-                  <label>Nom de l'article *</label>
-                  <input value={form.nom||''} onChange={e=>sf('nom',e.target.value)} placeholder="Burkini Azura..." />
-                </div>
-                <div className="form-group">
-                  <label>Type d'article</label>
-                  <input value={form.type||''} onChange={e=>sf('type',e.target.value)} placeholder="Burkini, Ensemble..." />
-                </div>
-                <div className="form-group">
-                  <label>Prix de base (MAD)</label>
-                  <input type="number" value={form.prix_base||''} onChange={e=>sf('prix_base',e.target.value)} placeholder="0" />
-                </div>
-              </div>
-              <div className="form-group" style={{marginBottom:'6px'}}><label>Stock par taille</label></div>
-              <div className="sizes-grid">
-                {TAILLES.map(t=>(
-                  <div className="size-input" key={t}>
-                    <label>{t}</label>
-                    <input type="number" min="0" value={form['stock_'+t.toLowerCase()]||0} onChange={e=>sf('stock_'+t.toLowerCase(),e.target.value)} />
-                  </div>
-                ))}
-              </div>
-              <div className="btn-group">
-                <button className="btn btn-primary" onClick={save}>✓ Enregistrer</button>
-                <button className="btn btn-secondary" onClick={()=>setModal(null)}>Annuler</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Mouvements ────────────────────────────────────────────────
-function Mouvements({ sb }) {
-  const [mouvements, setMouvements] = useState([]);
-  const [articles, setArticles] = useState([]);
-  const [modal, setModal] = useState(null);
-  const [form, setForm] = useState({});
-  const [alert, setAlert] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [filterType, setFilterType] = useState('');
-
-  async function load() {
-    const [m,a] = await Promise.all([
-      sb.from('mouvements').select('*,articles(nom)').order('created_at',{ascending:false}),
-      sb.from('articles').select('id,nom,prix_base'),
-    ]);
-    setMouvements(m.data||[]); setArticles(a.data||[]); setLoading(false);
-  }
-  useEffect(()=>{ load(); },[]);
-
-  function openAdd() {
-    setForm({article_id:'',type:'vente',taille:'M',quantite:1,prix:'',commentaire:''});
-    setModal('add');
-  }
-  function openEdit(m) { setForm({...m, article_id: m.article_id}); setModal(m); }
-
-  function onArticleChange(id) {
-    const a = articles.find(x=>x.id===id);
-    setForm(f=>({...f, article_id:id, prix: a ? a.prix_base : f.prix }));
-  }
-
-  async function save() {
-    const payload = {
-      article_id: form.article_id, type: form.type, taille: form.taille,
-      quantite: Number(form.quantite)||1, prix: Number(form.prix)||0,
-      commentaire: form.commentaire||''
-    };
-    if (!payload.article_id) { setAlert({type:'error',msg:'Choisis un article.'}); return; }
-    let e;
-    if (modal==='add') { ({error:e}=await sb.from('mouvements').insert([payload])); }
-    else { ({error:e}=await sb.from('mouvements').update(payload).eq('id',modal.id)); }
-    if (e) { setAlert({type:'error',msg:e.message}); return; }
-    setAlert({type:'success',msg:modal==='add'?'Mouvement ajouté !':'Mouvement mis à jour !'});
-    setModal(null); load(); setTimeout(()=>setAlert(null),3000);
-  }
-
-  async function del(id) {
-    if (!confirm('Supprimer ce mouvement ?')) return;
-    await sb.from('mouvements').delete().eq('id',id);
-    load();
-  }
-
-  const sf = (k,v) => setForm(f=>({...f,[k]:v}));
-  const filtered = filterType ? mouvements.filter(m=>m.type===filterType) : mouvements;
-
-  return (
-    <div>
-      {alert && <div className={`alert alert-${alert.type}`}>{alert.msg}</div>}
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'16px',flexWrap:'wrap',gap:'10px'}}>
-        <div style={{display:'flex',gap:'8px',flexWrap:'wrap'}}>
-          {['','vente','expedition','reservation'].map(t=>(
-            <button key={t} className={`btn btn-sm ${filterType===t?'btn-primary':'btn-secondary'}`} onClick={()=>setFilterType(t)}>
-              {t===''?'Tous':t.charAt(0).toUpperCase()+t.slice(1)}
-            </button>
-          ))}
-        </div>
-        <button className="btn btn-primary" onClick={openAdd}>+ Ajouter</button>
-      </div>
-
-      {loading ? <div className="empty-state">Chargement...</div> : (
-        filtered.length === 0 ? (
-          <div className="card"><div className="empty-state"><div className="empty-state-icon">📋</div>Aucun mouvement.</div></div>
-        ) : (
-          <div className="card">
-            <div className="table-wrap">
-              <table>
-                <thead><tr><th>Date</th><th>Article</th><th>Type</th><th>Taille</th><th>Qté</th><th>Prix unit.</th><th>Total</th><th>Commentaire</th><th>Actions</th></tr></thead>
-                <tbody>
-                  {filtered.map(m=>(
-                    <tr key={m.id}>
-                      <td style={{whiteSpace:'nowrap',color:'var(--text-muted)',fontSize:'12px'}}>{new Date(m.created_at).toLocaleDateString('fr-FR')}</td>
-                      <td><strong>{m.articles?.nom||'—'}</strong></td>
-                      <td><span className={`badge badge-${m.type}`}>{m.type}</span></td>
-                      <td>{m.taille}</td>
-                      <td>{m.quantite}</td>
-                      <td>{fmtPrice(m.prix)}</td>
-                      <td><strong>{fmtPrice(m.quantite*m.prix)}</strong></td>
-                      <td style={{color:'var(--text-muted)',maxWidth:'160px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{m.commentaire||'—'}</td>
-                      <td>
-                        <div style={{display:'flex',gap:'6px'}}>
-                          <button className="btn btn-secondary btn-sm" onClick={()=>openEdit(m)}>✏️</button>
-                          <button className="btn btn-danger btn-sm" onClick={()=>del(m.id)}>🗑</button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )
-      )}
-
-      {modal && (
-        <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&setModal(null)}>
-          <div className="modal">
-            <div className="modal-header">
-              <h3>{modal==='add'?'Nouveau mouvement':'Modifier le mouvement'}</h3>
-              <button className="close-btn" onClick={()=>setModal(null)}>✕</button>
-            </div>
-            <div className="modal-body">
-              <div className="form-grid">
-                <div className="form-group" style={{gridColumn:'1/-1'}}>
-                  <label>Article *</label>
-                  <select value={form.article_id||''} onChange={e=>onArticleChange(e.target.value)}>
-                    <option value="">— Choisir un article —</option>
-                    {articles.map(a=><option key={a.id} value={a.id}>{a.nom}</option>)}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Type de mouvement</label>
-                  <select value={form.type||'vente'} onChange={e=>sf('type',e.target.value)}>
-                    {TYPE_MVMT.map(t=><option key={t} value={t}>{t.charAt(0).toUpperCase()+t.slice(1)}</option>)}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Taille</label>
-                  <select value={form.taille||'M'} onChange={e=>sf('taille',e.target.value)}>
-                    {TAILLES.map(t=><option key={t} value={t}>{t}</option>)}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Quantité</label>
-                  <input type="number" min="1" value={form.quantite||1} onChange={e=>sf('quantite',e.target.value)} />
-                </div>
-                <div className="form-group">
-                  <label>Prix unitaire (MAD)</label>
-                  <input type="number" value={form.prix||''} onChange={e=>sf('prix',e.target.value)} placeholder="0" />
-                </div>
-                <div className="form-group" style={{gridColumn:'1/-1'}}>
-                  <label>Commentaire</label>
-                  <textarea rows="2" value={form.commentaire||''} onChange={e=>sf('commentaire',e.target.value)} placeholder="Notes, numéro commande..." style={{resize:'vertical'}} />
-                </div>
-              </div>
-              <div className="btn-group">
-                <button className="btn btn-primary" onClick={save}>✓ Enregistrer</button>
-                <button className="btn btn-secondary" onClick={()=>setModal(null)}>Annuler</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Capital ───────────────────────────────────────────────────
-function Capital({ sb }) {
-  const [entries, setEntries] = useState([]);
-  const [modal, setModal] = useState(null);
-  const [form, setForm] = useState({});
-  const [alert, setAlert] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  async function load() { const {data}=await sb.from('capital').select('*').order('created_at',{ascending:false}); setEntries(data||[]); setLoading(false); }
-  useEffect(()=>{ load(); },[]);
-
-  function openAdd() { setForm({montant:'',paye_par:'',commentaire:''}); setModal('add'); }
-  function openEdit(e) { setForm({...e}); setModal(e); }
-
-  async function save() {
-    const payload = { montant: Number(form.montant)||0, paye_par: form.paye_par||'', commentaire: form.commentaire||'' };
-    if (!payload.montant) { setAlert({type:'error',msg:'Le montant est requis.'}); return; }
-    if (!payload.paye_par) { setAlert({type:'error',msg:'Le payeur est requis.'}); return; }
-    let e;
-    if (modal==='add') { ({error:e}=await sb.from('capital').insert([payload])); }
-    else { ({error:e}=await sb.from('capital').update(payload).eq('id',modal.id)); }
-    if (e) { setAlert({type:'error',msg:e.message}); return; }
-    setAlert({type:'success',msg:modal==='add'?'Crédit ajouté !':'Mis à jour !'});
-    setModal(null); load(); setTimeout(()=>setAlert(null),3000);
-  }
-
-  async function del(id) {
-    if (!confirm('Supprimer cet apport ?')) return;
-    await sb.from('capital').delete().eq('id',id);
-    load();
-  }
-
-  const sf = (k,v) => setForm(f=>({...f,[k]:v}));
-  const total = entries.reduce((s,e)=>s+Number(e.montant),0);
-
-  return (
-    <div>
-      {alert && <div className={`alert alert-${alert.type}`}>{alert.msg}</div>}
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'16px',flexWrap:'wrap',gap:'10px'}}>
-        <div className="kpi" style={{minWidth:'200px'}}>
-          <div className="kpi-label">Capital total</div>
-          <div className="kpi-value accent">{fmtPrice(total)}</div>
-        </div>
-        <button className="btn btn-primary" onClick={openAdd}>+ Ajouter un apport</button>
-      </div>
-
-      {loading ? <div className="empty-state">Chargement...</div> : (
-        entries.length === 0 ? (
-          <div className="card"><div className="empty-state"><div className="empty-state-icon">💰</div>Aucun apport de capital.</div></div>
-        ) : (
-          <div className="card">
-            <div className="table-wrap">
-              <table>
-                <thead><tr><th>Date</th><th>Montant</th><th>Payé par</th><th>Commentaire</th><th>Actions</th></tr></thead>
-                <tbody>
-                  {entries.map(e=>(
-                    <tr key={e.id}>
-                      <td style={{whiteSpace:'nowrap',color:'var(--text-muted)',fontSize:'12px'}}>{new Date(e.created_at).toLocaleDateString('fr-FR')}</td>
-                      <td><strong style={{color:'var(--success)'}}>{fmtPrice(e.montant)}</strong></td>
-                      <td>{e.paye_par}</td>
-                      <td style={{color:'var(--text-muted)'}}>{e.commentaire||'—'}</td>
-                      <td>
-                        <div style={{display:'flex',gap:'6px'}}>
-                          <button className="btn btn-secondary btn-sm" onClick={()=>openEdit(e)}>✏️</button>
-                          <button className="btn btn-danger btn-sm" onClick={()=>del(e.id)}>🗑</button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )
-      )}
-
-      {modal && (
-        <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&setModal(null)}>
-          <div className="modal">
-            <div className="modal-header">
-              <h3>{modal==='add'?'Ajouter un apport':'Modifier l\'apport'}</h3>
-              <button className="close-btn" onClick={()=>setModal(null)}>✕</button>
-            </div>
-            <div className="modal-body">
-              <div className="form-grid">
-                <div className="form-group">
-                  <label>Montant (MAD) *</label>
-                  <input type="number" value={form.montant||''} onChange={e=>sf('montant',e.target.value)} placeholder="0" />
-                </div>
-                <div className="form-group">
-                  <label>Payé par *</label>
-                  <input value={form.paye_par||''} onChange={e=>sf('paye_par',e.target.value)} placeholder="Nom, associé..." />
-                </div>
-                <div className="form-group" style={{gridColumn:'1/-1'}}>
-                  <label>Commentaire</label>
-                  <textarea rows="2" value={form.commentaire||''} onChange={e=>sf('commentaire',e.target.value)} placeholder="Notes..." style={{resize:'vertical'}} />
-                </div>
-              </div>
-              <div className="btn-group">
-                <button className="btn btn-primary" onClick={save}>✓ Enregistrer</button>
-                <button className="btn btn-secondary" onClick={()=>setModal(null)}>Annuler</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── App Shell ─────────────────────────────────────────────────
-const PAGES = [
-  { id:'dashboard', label:'Tableau de bord', icon:'📊' },
-  { id:'articles',  label:'Stock / Articles', icon:'👗' },
-  { id:'mouvements',label:'Mouvements',       icon:'📋' },
-  { id:'capital',   label:'Capital',          icon:'💰' },
+const COLLECTIONS = [
+  { id:'burkini',    label:'Burkini',    icon:'🌊', tables:{ articles:'articles', mouvements:'mouvements', capital:'capital' } },
+  { id:'collection', label:'Collection', icon:'✨', tables:{ articles:'collection_articles', mouvements:'collection_mouvements', capital:'collection_capital' } },
 ];
 
-function App() {
-  const [connected, setConnected] = useState(false);
-  const [page, setPage] = useState('dashboard');
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [sb, setSb] = useState(null);
+function getSB(){ const u=localStorage.getItem(SK_URL),k=localStorage.getItem(SK_KEY); return u&&k?createClient(u,k):null; }
+const fmt=n=>isNaN(n)?'0':Number(n).toLocaleString('fr-FR',{minimumFractionDigits:0,maximumFractionDigits:0});
+const fmtP=n=>isNaN(n)?'0 MAD':Number(n).toLocaleString('fr-FR',{minimumFractionDigits:0,maximumFractionDigits:0})+' MAD';
 
-  useEffect(()=>{
-    const client = getSupabase();
-    if (client) { setSb(client); setConnected(true); }
-  },[]);
-
-  function handleConnect() { setSb(getSupabase()); setConnected(true); }
-  function disconnect() { localStorage.removeItem(SUPABASE_URL_KEY); localStorage.removeItem(SUPABASE_KEY_KEY); setConnected(false); setSb(null); }
-  function navigate(id) { setPage(id); setMenuOpen(false); }
-
-  if (!connected) return <SetupScreen onConnect={handleConnect} />;
-
-  const titles = { dashboard:'Tableau de bord', articles:'Stock & Articles', mouvements:'Mouvements', capital:'Capital' };
-
-  return (
-    <div className="app">
-      <div className={`overlay ${menuOpen?'open':''}`} onClick={()=>setMenuOpen(false)} />
-      <aside className={`sidebar ${menuOpen?'open':''}`}>
-        <div className="sidebar-logo">
-          <h1>Style &amp; Co</h1>
-          <p>Ton style, ta signature</p>
-        </div>
-        <nav className="sidebar-nav">
-          {PAGES.map(p=>(
-            <div key={p.id} className={`nav-item ${page===p.id?'active':''}`} onClick={()=>navigate(p.id)}>
-              <span className="nav-icon">{p.icon}</span>
-              <span>{p.label}</span>
-            </div>
-          ))}
-        </nav>
-        <div style={{padding:'16px 20px', borderTop:'1px solid rgba(255,255,255,0.1)'}}>
-          <button className="btn btn-secondary btn-sm" style={{fontSize:'11px',color:'rgba(255,255,255,0.5)',background:'transparent',border:'1px solid rgba(255,255,255,0.15)',width:'100%',justifyContent:'center'}} onClick={disconnect}>
-            ⚙ Changer de base
-          </button>
-        </div>
-      </aside>
-
-      <main className="main">
-        <div className="topbar">
-          <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
-            <button className="menu-btn" onClick={()=>setMenuOpen(o=>!o)}>☰</button>
-            <h2>{titles[page]}</h2>
-          </div>
-        </div>
-        {page==='dashboard' && <Dashboard sb={sb} />}
-        {page==='articles' && <Articles sb={sb} />}
-        {page==='mouvements' && <Mouvements sb={sb} />}
-        {page==='capital' && <Capital sb={sb} />}
-      </main>
-    </div>
-  );
+function SetupScreen({onConnect}){
+  const [url,setUrl]=useState('');const [key,setKey]=useState('');const [err,setErr]=useState('');const [load,setLoad]=useState(false);
+  async function connect(){setErr('');if(!url||!key){setErr('Remplis les deux champs');return;}setLoad(true);try{const sb=createClient(url.trim(),key.trim());const{error:e}=await sb.from('articles').select('id').limit(1);if(e&&e.code!=='PGRST116')throw new Error(e.message);localStorage.setItem(SK_URL,url.trim());localStorage.setItem(SK_KEY,key.trim());onConnect();}catch(e){setErr('Erreur: '+e.message);}finally{setLoad(false);}}
+  return(<div className="setup-screen"><div className="setup-card"><h1>Style &amp; Co</h1><p>Connexion à Supabase</p>{err&&<div className="alert alert-error">{err}</div>}<div className="form-group" style={{marginBottom:12}}><label>Project URL</label><input value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://xxxx.supabase.co"/></div><div className="form-group" style={{marginBottom:18}}><label>Clé anon/public</label><input type="password" value={key} onChange={e=>setKey(e.target.value)} placeholder="eyJ..."/></div><button className="btn btn-primary" style={{width:'100%',justifyContent:'center'}} onClick={connect} disabled={load}>{load?'Connexion...':'✓ Connecter'}</button><div style={{marginTop:14,fontSize:12,color:'var(--text-muted)',lineHeight:1.7}}><strong>Tables Supabase nécessaires :</strong><br/>Burkini : articles · mouvements · capital<br/>Collection : collection_articles · collection_mouvements · collection_capital</div></div></div>);
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+function Dashboard({sb,tables,col}){
+  const [articles,setArticles]=useState([]);const [mvmts,setMvmts]=useState([]);const [capital,setCapital]=useState([]);const [loading,setLoading]=useState(true);
+  useEffect(()=>{setLoading(true);Promise.all([sb.from(tables.articles).select('*'),sb.from(tables.mouvements).select('*,'+tables.articles+'(nom)'),sb.from(tables.capital).select('*')]).then(([a,m,c])=>{setArticles(a.data||[]);setMvmts(m.data||[]);setCapital(c.data||[]);setLoading(false);});},[tables]);
+  const stats=useMemo(()=>{
+    const totCap=capital.reduce((s,c)=>s+Number(c.montant),0);
+    const stockInit=articles.reduce((s,a)=>s+TAILLES.reduce((ss,t)=>ss+Number(a['stock_'+t.toLowerCase()]||0),0),0);
+    const byType=t=>mvmts.filter(m=>m.type===t);
+    const cnt=t=>byType(t).reduce((s,m)=>s+m.quantite,0);
+    const ca=t=>byType(t).reduce((s,m)=>s+m.quantite*Number(m.prix),0);
+    const sv=cnt('vente'),se=cnt('expedition'),sr=cnt('reservation');
+    const cav=ca('vente'),cae=ca('expedition'),car=ca('reservation');
+    const caT=cav+cae+car;
+    return{totCap,stockInit,sv,se,sr,stockRest:stockInit-sv-se,cav,cae,car,caT,pct:totCap>0?caT/totCap*100:0};
+  },[articles,mvmts,capital]);
+  const stocksRest=useMemo(()=>articles.map(a=>{
+    const r={},d={};
+    TAILLES.forEach(t=>{const ma=mvmts.filter(m=>m.article_id===a.id&&m.taille===t);const v=ma.filter(m=>m.type==='vente').reduce((s,m)=>s+m.quantite,0);const e=ma.filter(m=>m.type==='expedition').reduce((s,m)=>s+m.quantite,0);const res=ma.filter(m=>m.type==='reservation').reduce((s,m)=>s+m.quantite,0);const ini=Number(a['stock_'+t.toLowerCase()]||0);r[t]=ini-v-e;d[t]=ini-v-e-res;});return{...a,r,d};
+  }),[articles,mvmts]);
+  const ac=col==='collection'?'accent2':'accent';
+  if(loading)return<div className="empty-state"><div className="empty-state-icon">⏳</div>Chargement...</div>;
+  return(<div>
+    <div className="card"><div className="card-title">📦 Stock</div><div className="kpi-grid">
+      <div className="kpi"><div className="kpi-label">Initial</div><div className="kpi-value">{fmt(stats.stockInit)}</div></div>
+      <div className="kpi"><div className="kpi-label">Vendu</div><div className="kpi-value success">{fmt(stats.sv)}</div></div>
+      <div className="kpi"><div className="kpi-label">Expédié</div><div className="kpi-value info">{fmt(stats.se)}</div></div>
+      <div className="kpi"><div className="kpi-label">Réservé</div><div className="kpi-value warn">{fmt(stats.sr)}</div></div>
+      <div className="kpi"><div className="kpi-label">Restant</div><div className={`kpi-value ${ac}`}>{fmt(stats.stockRest)}</div></div>
+    </div></div>
+    <div className="card"><div className="card-title">💰 Chiffre d'affaires</div><div className="kpi-grid">
+      <div className="kpi"><div className="kpi-label">CA Vendu</div><div className="kpi-value success">{fmtP(stats.cav)}</div></div>
+      <div className="kpi"><div className="kpi-label">CA Expédié</div><div className="kpi-value info">{fmtP(stats.cae)}</div></div>
+      <div className="kpi"><div className="kpi-label">CA Réservé</div><div className="kpi-value warn">{fmtP(stats.car)}</div></div>
+      <div className="kpi"><div className="kpi-label">CA Total</div><div className="kpi-value">{fmtP(stats.caT)}</div></div>
+      <div className="kpi"><div className="kpi-label">Capital</div><div className="kpi-value">{fmtP(stats.totCap)}</div></div>
+      <div className="kpi"><div className="kpi-label">CA/Capital</div><div className={`kpi-value ${ac}`}>{stats.pct.toFixed(1)}%</div></div>
+    </div></div>
+    <div className="card"><div className="card-title">📊 Stock restant par modèle</div><div className="table-wrap"><table>
+      <thead><tr><th>Modèle</th><th>Type</th>{TAILLES.map(t=><th key={t}>{t}</th>)}<th>Total</th></tr></thead>
+      <tbody>{stocksRest.length===0?<tr><td colSpan={9}><div className="empty-state">Aucun article</div></td></tr>:stocksRest.map(a=><tr key={a.id}><td><strong>{a.nom}</strong></td><td style={{color:'var(--text-muted)'}}>{a.type}</td>{TAILLES.map(t=><td key={t}>{a.r[t]>0?<span className="stock-tag">{a.r[t]}</span>:a.r[t]}</td>)}<td><strong>{TAILLES.reduce((s,t)=>s+a.r[t],0)}</strong></td></tr>)}</tbody>
+    </table></div></div>
+    <div className="card"><div className="card-title">✅ Disponibles (hors réservations)</div><div className="table-wrap"><table>
+      <thead><tr><th>Modèle</th>{TAILLES.map(t=><th key={t}>{t}</th>)}<th>Total dispo</th></tr></thead>
+      <tbody>{stocksRest.map(a=><tr key={a.id}><td><strong>{a.nom}</strong></td>{TAILLES.map(t=><td key={t}>{a.d[t]>0?<span className="stock-tag">{a.d[t]}</span>:<span style={{color:'var(--text-muted)'}}>—</span>}</td>)}<td><strong>{TAILLES.reduce((s,t)=>s+Math.max(0,a.d[t]),0)}</strong></td></tr>)}</tbody>
+    </table></div></div>
+  </div>);
+}
+
+function Articles({sb,tables,col}){
+  const [arts,setArts]=useState([]);const [modal,setModal]=useState(null);const [form,setForm]=useState({});const [alert,setAlert]=useState(null);const [loading,setLoading]=useState(true);
+  const load=async()=>{const{data}=await sb.from(tables.articles).select('*').order('created_at',{ascending:false});setArts(data||[]);setLoading(false);};
+  useEffect(()=>{setLoading(true);load();},[tables]);
+  const openAdd=()=>{setForm({nom:'',type:'',prix_base:'',stock_s:0,stock_m:0,stock_l:0,stock_xl:0,stock_2xl:0,stock_3xl:0});setModal('add');};
+  const openEdit=a=>{setForm({...a});setModal(a);};
+  const sf=(k,v)=>setForm(f=>({...f,[k]:v}));
+  const btnC=col==='collection'?'btn-col':'btn-primary';
+  async function save(){const p={nom:form.nom,type:form.type,prix_base:Number(form.prix_base)||0,stock_s:Number(form.stock_s)||0,stock_m:Number(form.stock_m)||0,stock_l:Number(form.stock_l)||0,stock_xl:Number(form.stock_xl)||0,stock_2xl:Number(form.stock_2xl)||0,stock_3xl:Number(form.stock_3xl)||0};if(!p.nom){setAlert({t:'error',m:'Nom requis'});return;}let e;if(modal==='add'){({error:e}=await sb.from(tables.articles).insert([p]));}else{({error:e}=await sb.from(tables.articles).update(p).eq('id',modal.id));}if(e){setAlert({t:'error',m:e.message});return;}setAlert({t:'success',m:modal==='add'?'Ajouté !':'Mis à jour !'});setModal(null);load();setTimeout(()=>setAlert(null),3000);}
+  async function del(id){if(!confirm('Supprimer ?'))return;await sb.from(tables.articles).delete().eq('id',id);load();}
+  return(<div>
+    {alert&&<div className={`alert alert-${alert.t}`}>{alert.m}</div>}
+    <div style={{display:'flex',justifyContent:'flex-end',marginBottom:14}}><button className={`btn ${btnC}`} onClick={openAdd}>+ Ajouter un article</button></div>
+    {loading?<div className="empty-state">Chargement...</div>:arts.length===0?<div className="card"><div className="empty-state"><div className="empty-state-icon">👗</div>Aucun article.<br/><button className={`btn ${btnC}`} style={{marginTop:12}} onClick={openAdd}>Ajouter le premier</button></div></div>:
+    <div className="card"><div className="table-wrap"><table><thead><tr><th>Nom</th><th>Type</th><th>Prix base</th>{TAILLES.map(t=><th key={t}>{t}</th>)}<th>Actions</th></tr></thead><tbody>{arts.map(a=><tr key={a.id}><td><strong>{a.nom}</strong></td><td style={{color:'var(--text-muted)'}}>{a.type}</td><td>{fmtP(a.prix_base)}</td>{TAILLES.map(t=><td key={t}>{a['stock_'+t.toLowerCase()]||0}</td>)}<td><div style={{display:'flex',gap:6}}><button className="btn btn-secondary btn-sm" onClick={()=>openEdit(a)}>✏️</button><button className="btn btn-danger btn-sm" onClick={()=>del(a.id)}>🗑</button></div></td></tr>)}</tbody></table></div></div>}
+    {modal&&<div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&setModal(null)}><div className="modal"><div className="modal-header"><h3>{modal==='add'?'Ajouter':'Modifier'}</h3><button className="close-btn" onClick={()=>setModal(null)}>✕</button></div><div className="modal-body"><div className="form-grid" style={{marginBottom:12}}><div className="form-group"><label>Nom *</label><input value={form.nom||''} onChange={e=>sf('nom',e.target.value)}/></div><div className="form-group"><label>Type</label><input value={form.type||''} onChange={e=>sf('type',e.target.value)} placeholder="Burkini, Ensemble..."/></div><div className="form-group"><label>Prix base (MAD)</label><input type="number" value={form.prix_base||''} onChange={e=>sf('prix_base',e.target.value)}/></div></div><div className="form-group" style={{marginBottom:6}}><label>Stock par taille</label></div><div className="sizes-grid">{TAILLES.map(t=><div className="size-input" key={t}><label>{t}</label><input type="number" min="0" value={form['stock_'+t.toLowerCase()]||0} onChange={e=>sf('stock_'+t.toLowerCase(),e.target.value)}/></div>)}</div><div className="btn-group"><button className={`btn ${btnC}`} onClick={save}>✓ Enregistrer</button><button className="btn btn-secondary" onClick={()=>setModal(null)}>Annuler</button></div></div></div></div>}
+  </div>);
+}
+
+function Mouvements({sb,tables,col}){
+  const [mvmts,setMvmts]=useState([]);const [arts,setArts]=useState([]);const [modal,setModal]=useState(null);const [form,setForm]=useState({});const [alert,setAlert]=useState(null);const [loading,setLoading]=useState(true);const [ft,setFt]=useState('');
+  const load=async()=>{const[m,a]=await Promise.all([sb.from(tables.mouvements).select('*,'+tables.articles+'(nom)').order('created_at',{ascending:false}),sb.from(tables.articles).select('id,nom,prix_base')]);setMvmts(m.data||[]);setArts(a.data||[]);setLoading(false);};
+  useEffect(()=>{setLoading(true);load();},[tables]);
+  const openAdd=()=>{setForm({article_id:'',type:'vente',taille:'M',quantite:1,prix:'',commentaire:''});setModal('add');};
+  const openEdit=m=>{setForm({...m});setModal(m);};
+  const onArt=id=>{const a=arts.find(x=>x.id===id);setForm(f=>({...f,article_id:id,prix:a?a.prix_base:f.prix}));};
+  const sf=(k,v)=>setForm(f=>({...f,[k]:v}));
+  const btnC=col==='collection'?'btn-col':'btn-primary';
+  async function save(){const p={article_id:form.article_id,type:form.type,taille:form.taille,quantite:Number(form.quantite)||1,prix:Number(form.prix)||0,commentaire:form.commentaire||''};if(!p.article_id){setAlert({t:'error',m:'Choisis un article'});return;}let e;if(modal==='add'){({error:e}=await sb.from(tables.mouvements).insert([p]));}else{({error:e}=await sb.from(tables.mouvements).update(p).eq('id',modal.id));}if(e){setAlert({t:'error',m:e.message});return;}setAlert({t:'success',m:modal==='add'?'Ajouté !':'Mis à jour !'});setModal(null);load();setTimeout(()=>setAlert(null),3000);}
+  async function del(id){if(!confirm('Supprimer ?'))return;await sb.from(tables.mouvements).delete().eq('id',id);load();}
+  const filtered=ft?mvmts.filter(m=>m.type===ft):mvmts;
+  const artNom=m=>{const key=tables.articles;return m[key]?.nom||'—';};
+  return(<div>
+    {alert&&<div className={`alert alert-${alert.t}`}>{alert.m}</div>}
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14,flexWrap:'wrap',gap:8}}>
+      <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{['','vente','expedition','reservation'].map(t=><button key={t} className={`btn btn-sm ${ft===t?btnC:'btn-secondary'}`} onClick={()=>setFt(t)}>{t===''?'Tous':t.charAt(0).toUpperCase()+t.slice(1)}</button>)}</div>
+      <button className={`btn ${btnC}`} onClick={openAdd}>+ Ajouter</button>
+    </div>
+    {loading?<div className="empty-state">Chargement...</div>:filtered.length===0?<div className="card"><div className="empty-state"><div className="empty-state-icon">📋</div>Aucun mouvement.</div></div>:
+    <div className="card"><div className="table-wrap"><table><thead><tr><th>Date</th><th>Article</th><th>Type</th><th>Taille</th><th>Qté</th><th>Prix</th><th>Total</th><th>Commentaire</th><th></th></tr></thead><tbody>{filtered.map(m=><tr key={m.id}><td style={{whiteSpace:'nowrap',color:'var(--text-muted)',fontSize:12}}>{new Date(m.created_at).toLocaleDateString('fr-FR')}</td><td><strong>{artNom(m)}</strong></td><td><span className={`badge badge-${m.type}`}>{m.type}</span></td><td>{m.taille}</td><td>{m.quantite}</td><td>{fmtP(m.prix)}</td><td><strong>{fmtP(m.quantite*m.prix)}</strong></td><td style={{color:'var(--text-muted)',maxWidth:140,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{m.commentaire||'—'}</td><td><div style={{display:'flex',gap:6}}><button className="btn btn-secondary btn-sm" onClick={()=>openEdit(m)}>✏️</button><button className="btn btn-danger btn-sm" onClick={()=>del(m.id)}>🗑</button></div></td></tr>)}</tbody></table></div></div>}
+    {modal&&<div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&setModal(null)}><div className="modal"><div className="modal-header"><h3>{modal==='add'?'Nouveau mouvement':'Modifier'}</h3><button className="close-btn" onClick={()=>setModal(null)}>✕</button></div><div className="modal-body"><div className="form-grid"><div className="form-group" style={{gridColumn:'1/-1'}}><label>Article *</label><select value={form.article_id||''} onChange={e=>onArt(e.target.value)}><option value="">— Choisir —</option>{arts.map(a=><option key={a.id} value={a.id}>{a.nom}</option>)}</select></div><div className="form-group"><label>Type</label><select value={form.type||'vente'} onChange={e=>sf('type',e.target.value)}>{TYPE_MVMT.map(t=><option key={t} value={t}>{t.charAt(0).toUpperCase()+t.slice(1)}</option>)}</select></div><div className="form-group"><label>Taille</label><select value={form.taille||'M'} onChange={e=>sf('taille',e.target.value)}>{TAILLES.map(t=><option key={t} value={t}>{t}</option>)}</select></div><div className="form-group"><label>Quantité</label><input type="number" min="1" value={form.quantite||1} onChange={e=>sf('quantite',e.target.value)}/></div><div className="form-group"><label>Prix (MAD)</label><input type="number" value={form.prix||''} onChange={e=>sf('prix',e.target.value)}/></div><div className="form-group" style={{gridColumn:'1/-1'}}><label>Commentaire</label><textarea rows="2" value={form.commentaire||''} onChange={e=>sf('commentaire',e.target.value)} style={{resize:'vertical'}}/></div></div><div className="btn-group"><button className={`btn ${btnC}`} onClick={save}>✓ Enregistrer</button><button className="btn btn-secondary" onClick={()=>setModal(null)}>Annuler</button></div></div></div></div>}
+  </div>);
+}
+
+function Capital({sb,tables,col}){
+  const [entries,setEntries]=useState([]);const [modal,setModal]=useState(null);const [form,setForm]=useState({});const [alert,setAlert]=useState(null);const [loading,setLoading]=useState(true);
+  const load=async()=>{const{data}=await sb.from(tables.capital).select('*').order('created_at',{ascending:false});setEntries(data||[]);setLoading(false);};
+  useEffect(()=>{setLoading(true);load();},[tables]);
+  const openAdd=()=>{setForm({montant:'',paye_par:'',commentaire:''});setModal('add');};
+  const openEdit=e=>{setForm({...e});setModal(e);};
+  const sf=(k,v)=>setForm(f=>({...f,[k]:v}));
+  const btnC=col==='collection'?'btn-col':'btn-primary';
+  const ac=col==='collection'?'accent2':'accent';
+  async function save(){const p={montant:Number(form.montant)||0,paye_par:form.paye_par||'',commentaire:form.commentaire||''};if(!p.montant){setAlert({t:'error',m:'Montant requis'});return;}if(!p.paye_par){setAlert({t:'error',m:'Payeur requis'});return;}let e;if(modal==='add'){({error:e}=await sb.from(tables.capital).insert([p]));}else{({error:e}=await sb.from(tables.capital).update(p).eq('id',modal.id));}if(e){setAlert({t:'error',m:e.message});return;}setAlert({t:'success',m:modal==='add'?'Ajouté !':'Mis à jour !'});setModal(null);load();setTimeout(()=>setAlert(null),3000);}
+  async function del(id){if(!confirm('Supprimer ?'))return;await sb.from(tables.capital).delete().eq('id',id);load();}
+  const total=entries.reduce((s,e)=>s+Number(e.montant),0);
+  return(<div>
+    {alert&&<div className={`alert alert-${alert.t}`}>{alert.m}</div>}
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14,flexWrap:'wrap',gap:10}}>
+      <div className="kpi" style={{minWidth:180}}><div className="kpi-label">Capital total</div><div className={`kpi-value ${ac}`}>{fmtP(total)}</div></div>
+      <button className={`btn ${btnC}`} onClick={openAdd}>+ Ajouter un apport</button>
+    </div>
+    {loading?<div className="empty-state">Chargement...</div>:entries.length===0?<div className="card"><div className="empty-state"><div className="empty-state-icon">💰</div>Aucun apport.</div></div>:
+    <div className="card"><div className="table-wrap"><table><thead><tr><th>Date</th><th>Montant</th><th>Payé par</th><th>Commentaire</th><th></th></tr></thead><tbody>{entries.map(e=><tr key={e.id}><td style={{whiteSpace:'nowrap',color:'var(--text-muted)',fontSize:12}}>{new Date(e.created_at).toLocaleDateString('fr-FR')}</td><td><strong style={{color:'var(--success)'}}>{fmtP(e.montant)}</strong></td><td>{e.paye_par}</td><td style={{color:'var(--text-muted)'}}>{e.commentaire||'—'}</td><td><div style={{display:'flex',gap:6}}><button className="btn btn-secondary btn-sm" onClick={()=>openEdit(e)}>✏️</button><button className="btn btn-danger btn-sm" onClick={()=>del(e.id)}>🗑</button></div></td></tr>)}</tbody></table></div></div>}
+    {modal&&<div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&setModal(null)}><div className="modal"><div className="modal-header"><h3>{modal==='add'?'Ajouter un apport':'Modifier'}</h3><button className="close-btn" onClick={()=>setModal(null)}>✕</button></div><div className="modal-body"><div className="form-grid"><div className="form-group"><label>Montant (MAD) *</label><input type="number" value={form.montant||''} onChange={e=>sf('montant',e.target.value)}/></div><div className="form-group"><label>Payé par *</label><input value={form.paye_par||''} onChange={e=>sf('paye_par',e.target.value)}/></div><div className="form-group" style={{gridColumn:'1/-1'}}><label>Commentaire</label><textarea rows="2" value={form.commentaire||''} onChange={e=>sf('commentaire',e.target.value)} style={{resize:'vertical'}}/></div></div><div className="btn-group"><button className={`btn ${btnC}`} onClick={save}>✓ Enregistrer</button><button className="btn btn-secondary" onClick={()=>setModal(null)}>Annuler</button></div></div></div></div>}
+  </div>);
+}
+
+const PAGES=[{id:'dashboard',label:'Tableau de bord',icon:'📊'},{id:'articles',label:'Stock / Articles',icon:'👗'},{id:'mouvements',label:'Mouvements',icon:'📋'},{id:'capital',label:'Capital',icon:'💰'}];
+
+function App(){
+  const [connected,setConnected]=useState(false);const [page,setPage]=useState('dashboard');const [col,setCol]=useState('burkini');const [menuOpen,setMenuOpen]=useState(false);const [sb,setSb]=useState(null);
+  useEffect(()=>{const c=getSB();if(c){setSb(c);setConnected(true);}},[]);
+  if(!connected)return<SetupScreen onConnect={()=>{setSb(getSB());setConnected(true);}}/>;
+  const curCol=COLLECTIONS.find(c=>c.id===col);
+  const titles={dashboard:'Tableau de bord',articles:'Stock & Articles',mouvements:'Mouvements',capital:'Capital'};
+  function switchCol(c){setCol(c);setPage('dashboard');setMenuOpen(false);}
+  return(<div className="app">
+    <div className={`overlay ${menuOpen?'open':''}`} onClick={()=>setMenuOpen(false)}/>
+    <aside className={`sidebar ${menuOpen?'open':''}`}>
+      <div className="sidebar-logo"><h1>Style &amp; Co</h1><p>Ton style, ta signature</p></div>
+      <div className="sidebar-tabs">
+        {COLLECTIONS.map(c=><button key={c.id} className={`sidebar-tab ${col===c.id?'tab-'+c.id:''}`} onClick={()=>switchCol(c.id)}>{c.icon} {c.label}</button>)}
+      </div>
+      <nav className="sidebar-nav">
+        <div className="nav-section">{curCol.label}</div>
+        {PAGES.map(p=><div key={p.id} className={`nav-item ${page===p.id?'nav-'+col:''}`} onClick={()=>{setPage(p.id);setMenuOpen(false);}}><span className="nav-icon">{p.icon}</span><span>{p.label}</span></div>)}
+      </nav>
+      <div className="sidebar-footer"><button className="btn btn-secondary btn-sm" style={{fontSize:11,color:'rgba(255,255,255,0.5)',background:'transparent',border:'1px solid rgba(255,255,255,0.15)',width:'100%',justifyContent:'center'}} onClick={()=>{localStorage.removeItem(SK_URL);localStorage.removeItem(SK_KEY);setConnected(false);setSb(null);}}>⚙ Changer de base</button></div>
+    </aside>
+    <main className="main">
+      <div className="main-header"><div className="main-header-top">
+        <div style={{display:'flex',alignItems:'center',gap:10}}>
+          <button className="menu-btn" onClick={()=>setMenuOpen(o=>!o)}>☰</button>
+          <h2>{titles[page]}</h2>
+          <span className={`col-badge ${col}`}>{curCol.icon} {curCol.label}</span>
+        </div>
+      </div></div>
+      <div className="main-content">
+        {page==='dashboard'&&<Dashboard sb={sb} tables={curCol.tables} col={col}/>}
+        {page==='articles'&&<Articles sb={sb} tables={curCol.tables} col={col}/>}
+        {page==='mouvements'&&<Mouvements sb={sb} tables={curCol.tables} col={col}/>}
+        {page==='capital'&&<Capital sb={sb} tables={curCol.tables} col={col}/>}
+      </div>
+    </main>
+  </div>);
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </script>
 </body>
 </html>
